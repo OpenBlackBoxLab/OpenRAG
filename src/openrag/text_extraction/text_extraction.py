@@ -21,7 +21,6 @@ Copyright (c) 2024 Open BlackBox
 This file is part of OpenRAG and is released under the MIT License.
 See the LICENSE file in the root directory of this project for details.
 """
-
 import fitz
 import re
 from ..utils import azure_helper as azure_helper
@@ -36,7 +35,7 @@ def extract_pdf_text(file_name):
     Returns:
         list: A list of strings, where each string is the text of a page.
     """
-    pdf_document = fitz.open("pdf", azure_helper.getRawPDF(file_name))
+    pdf_document = fitz.open("pdf", azure_helper.get_raw_pdf(file_name))
     pages_text = [pdf_document.load_page(page_number).get_text() for page_number in range(len(pdf_document))]
     pdf_document.close()
     return pages_text
@@ -110,9 +109,9 @@ def save_text_to_json(pages_text, file_name):
         file_name (str): The name of the file to save the JSON to.
     """
     data = [{"text": text, "page": index + 1} for index, text in enumerate(pages_text)]
-    azure_helper.putExtractedDict(file_name, data)
+    azure_helper.put_extracted_dict(file_name, data)
 
-def extract_and_process_pdf(file_name):
+def extract_and_preprocess_pdf(file_name):
     """
     Extract text from a PDF file, preprocess it, and save to JSON.
 

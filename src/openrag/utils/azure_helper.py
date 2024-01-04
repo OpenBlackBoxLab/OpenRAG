@@ -15,7 +15,6 @@ Copyright (c) 2024 Open BlackBox
 This file is part of OpenRAG and is released under the MIT License.
 See the LICENSE file in the root directory of this project for details.
 """
-
 from azure.storage.blob import BlobServiceClient
 from io import BytesIO
 import os
@@ -43,7 +42,7 @@ def get_blob_service_client():
     connection_string = os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
     return BlobServiceClient.from_connection_string(connection_string)
 
-def download_blob(file_name, container_name):
+def download_blob(file_name, container_name, stream=False):
     """
     Download a blob from the specified Azure Blob Storage container.
 
@@ -56,7 +55,7 @@ def download_blob(file_name, container_name):
     """
     blob_client = get_blob_service_client().get_blob_client(container=container_name, blob=file_name)
     blob_data = blob_client.download_blob().readall()
-    return BytesIO(blob_data)
+    return BytesIO(blob_data) if stream else blob_data
 
 def list_blobs(container_name):
     """
@@ -102,7 +101,7 @@ def get_raw_pdf(file_name):
     Returns:
         BytesIO: The stream of the PDF file.
     """
-    return download_blob(f"{file_name}.pdf", CONTAINER_NAMES['raw_pdfs'])
+    return download_blob(f"{file_name}.pdf", CONTAINER_NAMES['raw_pdfs'], stream=True)
 
 def get_extracted_dict(file_name):
     """

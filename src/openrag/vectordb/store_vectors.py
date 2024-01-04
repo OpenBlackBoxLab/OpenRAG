@@ -14,46 +14,8 @@ Copyright (c) 2024 Open BlackBox
 This file is part of OpenRAG and is released under the MIT License.
 See the LICENSE file in the root directory of this project for details.
 """
-
-from pymilvus import (
-    connections, utility, Collection, CollectionSchema
-)
+from pymilvus import utility, Collection, CollectionSchema
 import time
-
-def check_ping_status(alias):
-    """
-    Check the connection status to the Milvus database.
-
-    Args:
-        alias (str): The alias of the connection.
-
-    Returns:
-        None
-    """
-    if alias in connections.list_connections():
-        status = connections.get_connection(alias).ping()
-        print(f"Ping status: {status}")
-    else:
-        print(f"No connection found for alias: {alias}")
-
-def check_and_drop_collection(collection_name):
-    """
-    Check if a collection exists and drop it if it does.
-
-    Args:
-        collection_name (str): The name of the collection to check.
-
-    Returns:
-        bool: True if the collection existed and was dropped, False otherwise.
-    """
-    if utility.has_collection(collection_name):
-        print(f"Collection {collection_name} already exists and will be dropped.")
-        utility.drop_collection(collection_name)
-        print(f"Collection {collection_name} has been dropped.")
-        return True
-    else:
-        print(f"Collection {collection_name} does not exist.")
-        return False
 
 def create_collection_schema(fields):
     """

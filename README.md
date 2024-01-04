@@ -13,6 +13,7 @@ The RAG model is structured to handle various stages efficiently: from text extr
 git clone https://github.com/OpenBlackBox/OpenRAG.git
 cd OpenRAG
 pip install -r requirements.txt
+python -m spacy download fr_dep_news_trf
 ```
 
 ## Usage

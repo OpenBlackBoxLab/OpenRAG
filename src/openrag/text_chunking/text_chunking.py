@@ -14,7 +14,6 @@ Copyright (c) 2024 Open BlackBox
 This file is part of OpenRAG and is released under the MIT License.
 See the LICENSE file in the root directory of this project for details.
 """
-
 import spacy
 from ..utils import azure_helper as azure_handler
 from tiktoken import get_encoding
@@ -143,8 +142,10 @@ def overlapping_chunking(pages, min_chunk_size, max_chunk_size, overlap_size):
     Returns:
         dict: A dictionary of chunked sentences with associated metadata.
     """
+    print("Loading spaCy models...")
     nlp_fr, nlp_nl = load_spacy_models()  # Load spacy models
 
+    print("Splitting into sentences...")
     all_sentences = []
     for page_text, page_num in pages:
         sentences = split_into_sentences(page_text, nlp_fr)
@@ -166,7 +167,11 @@ def chunk_and_save(file_name):
     Returns:
         None
     """
-    data = azure_handler.getExtractedDict(file_name)
+    print("Chunking and saving " + file_name)
+    data = azure_handler.get_extracted_dict(file_name)
+    print("Loaded " + file_name)
     pages = [(entry["text"], entry["page"]) for entry in data]
+    print("Chunking " + file_name)
     chunks = overlapping_chunking(pages, CHUNK_SIZE_TOKENS_MIN, CHUNK_SIZE_TOKENS_MAX, OVERLAP_SIZE_TOKENS)
-    azure_handler.putChunkedDict(file_name, chunks)
+    print("Saving " + file_name)
+    azure_handler.put_chunked_dict(file_name, chunks)

@@ -12,8 +12,15 @@ Copyright (c) 2024 Open BlackBox
 This file is part of OpenRAG and is released under the MIT License.
 See the LICENSE file in the root directory of this project for details.
 """
-from openrag.text_extraction import text_extraction as text_extraction
-from openrag.utils import azure_helper as azure_helper
-from openrag.text_chunking import text_chunking as text_chunking
-from openrag.chunk_vectorization import chunk_vectorization as chunk_vectorization
-from openrag.vectordb import store_vectors as store_vectors
+from openrag.utils import azure_helper
+from openrag.text_extraction import text_extraction
+from openrag.text_chunking import text_chunking
+
+raw_pds_filenames = azure_helper.list_blobs("raw-pdfs")
+
+for raw_pds_filename in raw_pds_filenames:
+    raw_pds_filename = raw_pds_filename.split(".")[0]
+    print(raw_pds_filename)
+    
+    text_extraction.extract_and_preprocess_pdf(raw_pds_filename)
+    text_chunking.chunk_and_save(raw_pds_filename)
