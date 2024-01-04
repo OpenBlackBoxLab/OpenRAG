@@ -14,6 +14,7 @@ git clone https://github.com/OpenBlackBox/OpenRAG.git
 cd OpenRAG
 pip install -r requirements.txt
 python -m spacy download fr_dep_news_trf
+python -m spacy download nl_core_news_lg
 ```
 
 ## Usage

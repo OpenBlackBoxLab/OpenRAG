@@ -102,32 +102,40 @@ def chunk_sentences(sentences, min_chunk_size, max_chunk_size, overlap_size):
     token_count = 0
 
     for sentence in sentences:
-        num_tokens = num_tokens_in_string(sentence['text'])
-        current_chunk.append(sentence['text'])
+        sentence_text = sentence['text']
+        sentence_page = sentence['page']
+        sentence_num = sentence['sentence_num']
+        sentences_page = sentence['sentences_page']
+        num_tokens = num_tokens_in_string(sentence_text, "cl100k_base")
+        current_chunk.append(sentence_text)
         token_count += num_tokens
 
-        if token_count >= min_chunk_size:
-            if token_count <= max_chunk_size:
-                chunks.append(current_chunk[:])
-                current_chunk, token_count = get_overlap(current_chunk, overlap_size)
-            else:
-                # Split sentence if chunk size exceeds max limit
-                split_sentence = sentence['text'].split()
-                half_index = len(split_sentence) // 2
-                first_half = ' '.join(split_sentence[:half_index])
-                second_half = ' '.join(split_sentence[half_index:])
+        # Check if the current chunk (minus the overlap) meets or exceeds the desired size
+        if min_chunk_size <= token_count <= max_chunk_size:
+            current_chunk.append(sentence_text)
+            chunks.append([current_chunk, sentence_page, sentence_num, sentences_page])
+            current_chunk, token_count = get_overlap(current_chunk, overlap_size)
+        elif token_count > max_chunk_size:
+            # Split the sentence in two
+            words = len(sentence_text)
+            sentence_first_part = sentence_text[:-words//2]
+            sentence_second_part = sentence_text[-words//2:]
+            # Add the first part of the sentence to the current chunk
+            current_chunk.append(sentence_first_part) 
+            chunks.append([current_chunk, sentence_page, sentence_num, sentences_page])
+            # Get started with the new chunk
+            current_chunk, token_count = get_overlap(current_chunk, overlap_size)
+            current_chunk.append(sentence_second_part)
+            num_tokens_new_part = num_tokens_in_string(' '.join(current_chunk), "cl100k_base")
+            token_count += num_tokens_new_part
 
-                current_chunk[-1] = first_half
-                chunks.append(current_chunk[:])
-                current_chunk, token_count = get_overlap(current_chunk, overlap_size)
+    # Add the last chunk if it's not just the overlap
+    if token_count > overlap_size:
+        chunks.append([current_chunk, sentence_page, sentence_num, sentences_page])
 
-                current_chunk.append(second_half)
-                token_count += num_tokens_in_string(second_half)
-
-    if current_chunk and token_count > overlap_size:
-        chunks.append(current_chunk)
-
-    return {'chunks': [' '.join(chunk) for chunk in chunks]}
+    chunks_dict = {f"chunk_{i}": {"text": " ".join(chunk[0]), "page": chunk[1], "sentence_num": chunk[2], "sentences_page": chunk[3]} 
+               for i, chunk in enumerate(chunks, start=1)}
+    return chunks_dict
 
 def overlapping_chunking(pages, min_chunk_size, max_chunk_size, overlap_size):
     """
@@ -142,18 +150,20 @@ def overlapping_chunking(pages, min_chunk_size, max_chunk_size, overlap_size):
     Returns:
         dict: A dictionary of chunked sentences with associated metadata.
     """
-    print("Loading spaCy models...")
-    nlp_fr, nlp_nl = load_spacy_models()  # Load spacy models
+    nlp_fr, nlp_nl = load_spacy_models()  # Load spaCy models
 
-    print("Splitting into sentences...")
     all_sentences = []
-    for page_text, page_num in pages:
-        sentences = split_into_sentences(page_text, nlp_fr)
-        for sentence in sentences:
-            all_sentences.append({
-                'text': sentence,
-                'page': page_num
-            })
+    for text, page_num in pages:
+        sentences = split_into_sentences(text, nlp_fr)
+        sentences_page = len(sentences)
+        for sentence_num, sentence in enumerate(sentences, start=1):
+            sentence_info = {
+                "text": sentence,
+                "page": page_num,
+                "sentence_num": sentence_num,
+                "sentences_page": sentences_page
+            }
+            all_sentences.append(sentence_info)
 
     return chunk_sentences(all_sentences, min_chunk_size, max_chunk_size, overlap_size)
 
@@ -167,11 +177,7 @@ def chunk_and_save(file_name):
     Returns:
         None
     """
-    print("Chunking and saving " + file_name)
     data = azure_handler.get_extracted_dict(file_name)
-    print("Loaded " + file_name)
     pages = [(entry["text"], entry["page"]) for entry in data]
-    print("Chunking " + file_name)
     chunks = overlapping_chunking(pages, CHUNK_SIZE_TOKENS_MIN, CHUNK_SIZE_TOKENS_MAX, OVERLAP_SIZE_TOKENS)
-    print("Saving " + file_name)
     azure_handler.put_chunked_dict(file_name, chunks)

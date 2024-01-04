@@ -86,7 +86,7 @@ def pad_vector(vector, target_dim):
     return vector
 
 def vectorize_and_store(file_name, vectorizer_type, expected_dim):
-    chunks = azure_handler.getChunkedDict(file_name)
+    chunks = azure_handler.get_chunked_dict(file_name)
     vectorizer = get_vectorizer(vectorizer_type)
     vector_data = []
 
@@ -96,4 +96,4 @@ def vectorize_and_store(file_name, vectorizer_type, expected_dim):
         padded_vector = pad_vector(vector, expected_dim)
         vector_data.append(padded_vector)
     
-    azure_handler.putVectorizedDict(file_name, vector_data)
+    azure_handler.put_vectorized_dict(file_name, vector_data)
