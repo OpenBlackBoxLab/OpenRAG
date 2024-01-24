@@ -39,7 +39,7 @@ def get_blob_service_client():
     Returns:
         BlobServiceClient: The BlobServiceClient instance.
     """
-    connection_string = os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
+    connection_string = "DefaultEndpointsProtocol=https;AccountName=" + os.environ.get("AZURE_STORAGE_ACCOUNT_NAME") + ";AccountKey=" + os.environ.get("AZURE_STORAGE_ACCOUNT_KEY") + ";EndpointSuffix=core.windows.net"
     return BlobServiceClient.from_connection_string(connection_string)
 
 def download_blob(file_name, container_name, stream=False):

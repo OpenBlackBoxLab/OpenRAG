@@ -23,6 +23,8 @@ for raw_pds_filename in raw_pds_filenames:
     raw_pds_filename = raw_pds_filename.split(".")[0]
     print(raw_pds_filename)
     
-    text_extraction.extract_and_preprocess_pdf(raw_pds_filename)
-    text_chunking.chunk_and_save(raw_pds_filename)
-    chunk_vectorization.vectorize_and_store(raw_pds_filename, 'ada', 1536)
+    # text_extraction.extract_and_preprocess_pdf(raw_pds_filename)
+    # text_chunking.chunk_and_save(raw_pds_filename)
+    # chunk_vectorization.vectorize_and_store(raw_pds_filename, 'ada', 1536)
+    
+    
