@@ -48,11 +48,12 @@ def store_vectors(collection_name, schema, vectors, vector_field, sources):
     collection = Collection(name=collection_name, schema=schema if not utility.has_collection(collection_name) else None)
 
     # Insert data in chunks
-    chunk_size = 5000
+    chunk_size = 1000
     num_chunks = len(vectors) // chunk_size + (1 if len(vectors) % chunk_size else 0)
 
     for i in range(num_chunks):
-        start_idx, end_idx = i * chunk_size, (i + 1) * chunk_size
+        start_idx = i * chunk_size
+        end_idx = min((i + 1) * chunk_size, len(vectors))
         data_chunk = [list(range(start_idx, end_idx)), vectors[start_idx:end_idx], sources[start_idx:end_idx]]
         collection.insert(data_chunk)
 

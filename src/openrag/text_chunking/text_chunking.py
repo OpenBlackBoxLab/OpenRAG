@@ -15,6 +15,7 @@ This file is part of OpenRAG and is released under the MIT License.
 See the LICENSE file in the root directory of this project for details.
 """
 import spacy
+from tqdm import tqdm
 from ..utils import azure_helper as azure_handler
 from tiktoken import get_encoding
 
@@ -153,7 +154,7 @@ def overlapping_chunking(pages, min_chunk_size, max_chunk_size, overlap_size):
     nlp_fr, nlp_nl = load_spacy_models()  # Load spaCy models
 
     all_sentences = []
-    for text, page_num in pages:
+    for text, page_num in tqdm(pages):
         sentences = split_into_sentences(text, nlp_fr)
         sentences_page = len(sentences)
         for sentence_num, sentence in enumerate(sentences, start=1):
