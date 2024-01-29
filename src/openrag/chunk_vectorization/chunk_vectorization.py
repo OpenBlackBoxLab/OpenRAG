@@ -65,7 +65,7 @@ class ADAVectorizer(Vectorizer):
     def vectorize(self, text):
         response = self.openai.embeddings.create(
             input=text,
-            model="text-embedding-ada-002",
+            model="text-embedding-3-large",
             encoding_format="float"
         )
         return response.data[0].embedding
