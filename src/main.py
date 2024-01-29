@@ -12,6 +12,7 @@ Copyright (c) 2024 Open BlackBox
 This file is part of OpenRAG and is released under the MIT License.
 See the LICENSE file in the root directory of this project for details.
 """
+import time
 from pymilvus import DataType, FieldSchema, utility
 from openrag.chunk_vectorization import chunk_vectorization
 from openrag.text_chunking import text_chunking
@@ -24,11 +25,17 @@ raw_pds_filenames = azure_helper.list_blobs("raw-pdfs")
 
 for raw_pds_filename in raw_pds_filenames:
     raw_pds_filename = raw_pds_filename.split(".")[0]
-    print(raw_pds_filename)
+    
+    start_time = time.time()
+    
+    print("Processing: " + raw_pds_filename)
     
     text_extraction.extract_and_preprocess_pdf(raw_pds_filename)
     text_chunking.chunk_and_save(raw_pds_filename)
     chunk_vectorization.vectorize_and_store(raw_pds_filename, 'ada', 3072)
+    
+    print("Processing time: " + str(time.time() - start_time))
+    print("=========================================")
 
 vectorized_filenames = azure_helper.list_blobs("vectorized-dicts")
 all_vectors = []

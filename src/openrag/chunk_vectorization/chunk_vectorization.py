@@ -90,7 +90,7 @@ def vectorize_and_store(file_name, vectorizer_type, expected_dim):
     vectorizer = get_vectorizer(vectorizer_type)
     vector_data = []
 
-    for chunk in tqdm(chunks.values()):
+    for chunk in tqdm(chunks.values(), desc="Vectorizing"):
         text = chunk['text']
         vector = vectorizer.vectorize(text)
         padded_vector = pad_vector(vector, expected_dim)

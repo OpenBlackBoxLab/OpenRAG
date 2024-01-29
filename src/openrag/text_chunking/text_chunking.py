@@ -131,10 +131,6 @@ def chunk_sentences(sentences, min_chunk_size, max_chunk_size, overlap_size):
             num_tokens_new_part = num_tokens_in_string(' '.join(current_chunk), "cl100k_base")
             token_count += num_tokens_new_part
 
-    # Add the last chunk if it's not just the overlap
-    if token_count > overlap_size:
-        chunks.append([current_chunk, sentence_page, sentence_num, sentences_page])
-
     chunks_dict = {f"chunk_{i}": {"text": " ".join(chunk[0]), "page": chunk[1], "sentence_num": chunk[2], "sentences_page": chunk[3]} 
                for i, chunk in enumerate(chunks, start=1)}
     return chunks_dict
@@ -158,7 +154,7 @@ def overlapping_chunking(pages, min_chunk_size, max_chunk_size, overlap_size):
     texts = [page_text for page_text, _ in pages]
     pages_info = [(page_num, len(text)) for text, page_num in pages]
 
-    for doc, (page_num, text_length) in tqdm(zip(nlp_fr.pipe(texts, batch_size=1), pages_info), total=len(pages), desc="Chunking"):
+    for doc, (page_num, text_length) in tqdm(zip(nlp_fr.pipe(texts, batch_size=50, disable=['tagger', 'ner', 'lemmatizer']), pages_info), total=len(pages), desc="Chunking"):
         sentences = list(doc.sents)
         sentences_page = len(sentences)
 
