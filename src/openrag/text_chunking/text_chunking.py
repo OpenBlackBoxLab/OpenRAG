@@ -14,6 +14,7 @@ Copyright (c) 2024 Open BlackBox
 This file is part of OpenRAG and is released under the MIT License.
 See the LICENSE file in the root directory of this project for details.
 """
+import time
 import spacy
 from tqdm import tqdm
 from ..utils import azure_helper as azure_handler
@@ -154,12 +155,16 @@ def overlapping_chunking(pages, min_chunk_size, max_chunk_size, overlap_size):
     nlp_fr, nlp_nl = load_spacy_models()  # Load spaCy models
 
     all_sentences = []
-    for text, page_num in tqdm(pages):
-        sentences = split_into_sentences(text, nlp_fr)
+    texts = [page_text for page_text, _ in pages]
+    pages_info = [(page_num, len(text)) for text, page_num in pages]
+
+    for doc, (page_num, text_length) in tqdm(zip(nlp_fr.pipe(texts, batch_size=1), pages_info), total=len(pages), desc="Chunking"):
+        sentences = list(doc.sents)
         sentences_page = len(sentences)
-        for sentence_num, sentence in enumerate(sentences, start=1):
+
+        for sentence_num, sent in enumerate(sentences, start=1):
             sentence_info = {
-                "text": sentence,
+                "text": sent.text.strip(),
                 "page": page_num,
                 "sentence_num": sentence_num,
                 "sentences_page": sentences_page
