@@ -14,6 +14,7 @@ Copyright (c) 2024 Open BlackBox
 This file is part of OpenRAG and is released under the MIT License.
 See the LICENSE file in the root directory of this project for details.
 """
+import time
 import spacy
 from tqdm import tqdm
 from ..utils import azure_helper as azure_handler
@@ -130,10 +131,6 @@ def chunk_sentences(sentences, min_chunk_size, max_chunk_size, overlap_size):
             num_tokens_new_part = num_tokens_in_string(' '.join(current_chunk), "cl100k_base")
             token_count += num_tokens_new_part
 
-    # Add the last chunk if it's not just the overlap
-    if token_count > overlap_size:
-        chunks.append([current_chunk, sentence_page, sentence_num, sentences_page])
-
     chunks_dict = {f"chunk_{i}": {"text": " ".join(chunk[0]), "page": chunk[1], "sentence_num": chunk[2], "sentences_page": chunk[3]} 
                for i, chunk in enumerate(chunks, start=1)}
     return chunks_dict
@@ -154,12 +151,16 @@ def overlapping_chunking(pages, min_chunk_size, max_chunk_size, overlap_size):
     nlp_fr, nlp_nl = load_spacy_models()  # Load spaCy models
 
     all_sentences = []
-    for text, page_num in tqdm(pages):
-        sentences = split_into_sentences(text, nlp_fr)
+    texts = [page_text for page_text, _ in pages]
+    pages_info = [(page_num, len(text)) for text, page_num in pages]
+
+    for doc, (page_num, text_length) in tqdm(zip(nlp_fr.pipe(texts, batch_size=50, disable=['tagger', 'ner', 'lemmatizer']), pages_info), total=len(pages), desc="Chunking"):
+        sentences = list(doc.sents)
         sentences_page = len(sentences)
-        for sentence_num, sentence in enumerate(sentences, start=1):
+
+        for sentence_num, sent in enumerate(sentences, start=1):
             sentence_info = {
-                "text": sentence,
+                "text": sent.text.strip(),
                 "page": page_num,
                 "sentence_num": sentence_num,
                 "sentences_page": sentences_page
