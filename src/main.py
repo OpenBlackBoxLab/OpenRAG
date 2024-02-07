@@ -23,25 +23,45 @@ from openrag.utils import azure_queue_handler, azure_storage_handler
 from openrag.vectordb.milvus_adapter import init_milvus_connection
 from openrag.vectordb.store_vectors import create_collection_schema, store_vectors
 from tqdm import tqdm
+import requests
 
 connection_string = "DefaultEndpointsProtocol=https;AccountName=" + os.environ.get("AZURE_STORAGE_ACCOUNT_NAME") + ";AccountKey=" + os.environ.get("AZURE_STORAGE_ACCOUNT_KEY") + ";EndpointSuffix=core.windows.net" # type: ignore
 azure_queue_handler = azure_queue_handler.AzureQueueHandler(connection_string, "documents-processing")
 
-for message in azure_queue_handler.receive_messages(visibility_timeout=1800):
-    raw_pds_filename = message.content.split('/')[-1].split(".")[0]
-    
-    start_time = time.time()
-    
-    print("Processing: " + raw_pds_filename)
-    
-    text_extraction.extract_and_preprocess_pdf(raw_pds_filename)
-    text_chunking.chunk_and_save(raw_pds_filename)
-    chunk_vectorization.vectorize_and_store(raw_pds_filename, 'ada', 3072)
-    
-    azure_queue_handler.delete_message(message)
-    
-    print("Processing time: " + str(time.time() - start_time))
-    print("=========================================")
+processed_documents = []
+
+for message in azure_queue_handler.receive_messages(visibility_timeout=18000):
+    try:
+        response = requests.get(os.environ.get("ENTITIES_API_URL") + "/parties/" + message.content)
+
+        if response.status_code == 200:
+            document = response.json()
+        else:
+            print("Error: Failed to retrieve the document from the API")
+        
+        raw_pds_filename = document['data']['file']
+        
+        start_time = time.time()
+        
+        print("Processing: " + raw_pds_filename)
+        
+        text_extraction.extract_and_preprocess_pdf(raw_pds_filename)
+        text_chunking.chunk_and_save(raw_pds_filename)
+        chunk_vectorization.vectorize_and_store(raw_pds_filename, 'ada', 3072)
+        
+        azure_queue_handler.delete_message(message)
+        processed_documents = processed_documents + [message.content]
+        
+        print("Processing time: " + str(time.time() - start_time))
+        print("=========================================")
+    except Exception as e:
+        print("Error: " + str(e))
+        azure_queue_handler.delete_message(message)
+        print("=========================================")
+
+if len(processed_documents) == 0:
+    print("No documents to process")
+    exit()
 
 try:
     settings = json.loads((azure_storage_handler.download_blob("settings.json", "settings")).decode("utf-8")) # type: ignore
@@ -89,3 +109,6 @@ store_vectors(collection_name, schema, all_vectors, vector_field.name, all_sourc
 settings = dict()
 settings["current_collection"] = collection_name
 azure_storage_handler.upload_blob("settings.json", "settings", settings)
+
+for document in processed_documents:
+    requests.patch(os.environ.get("ENTITIES_API_URL") + "/parties/" + document, json={"state": "available"})
