@@ -16,7 +16,7 @@ See the LICENSE file in the root directory of this project for details.
 """
 
 from tqdm import tqdm
-from ..utils import azure_helper as azure_handler
+from ..utils import azure_storage_handler as azure_handler
 
 # Base class for vectorizers
 class Vectorizer:

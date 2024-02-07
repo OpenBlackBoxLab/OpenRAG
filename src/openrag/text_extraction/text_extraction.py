@@ -24,7 +24,7 @@ See the LICENSE file in the root directory of this project for details.
 import fitz
 import re
 from tqdm import tqdm
-from ..utils import azure_helper as azure_helper
+from ..utils import azure_storage_handler as azure_storage_handler
 
 def extract_pdf_text(file_name):
     """
@@ -36,7 +36,7 @@ def extract_pdf_text(file_name):
     Returns:
         list: A list of strings, where each string is the text of a page.
     """
-    pdf_document = fitz.open("pdf", azure_helper.get_raw_pdf(file_name)) # type: ignore
+    pdf_document = fitz.open("pdf", azure_storage_handler.get_raw_pdf(file_name)) # type: ignore
     pages_text = [pdf_document.load_page(page_number).get_text() for page_number in tqdm(range(len(pdf_document)), desc="Extracting")]
     pdf_document.close()
     return pages_text
@@ -110,7 +110,7 @@ def save_text_to_json(pages_text, file_name):
         file_name (str): The name of the file to save the JSON to.
     """
     data = [{"text": text, "page": index + 1} for index, text in enumerate(pages_text)]
-    azure_helper.put_extracted_dict(file_name, data)
+    azure_storage_handler.put_extracted_dict(file_name, data)
 
 def extract_and_preprocess_pdf(file_name):
     """

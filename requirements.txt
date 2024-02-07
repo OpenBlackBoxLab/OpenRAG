@@ -7,3 +7,4 @@ openai==1.6.1
 gensim==4.3.2
 transformers==4.36.2
 pymilvus==2.3.4
+azure-storage-queue==12.9.0
