@@ -13,18 +13,22 @@ This file is part of OpenRAG and is released under the MIT License.
 See the LICENSE file in the root directory of this project for details.
 """
 import time
+import json
+import os
 from pymilvus import DataType, FieldSchema, utility
 from openrag.chunk_vectorization import chunk_vectorization
 from openrag.text_chunking import text_chunking
 from openrag.text_extraction import text_extraction
-from openrag.utils import azure_helper
+from openrag.utils import azure_queue_handler, azure_storage_handler
 from openrag.vectordb.milvus_adapter import init_milvus_connection
 from openrag.vectordb.store_vectors import create_collection_schema, store_vectors
+from tqdm import tqdm
 
-raw_pds_filenames = azure_helper.list_blobs("raw-pdfs")
+connection_string = "DefaultEndpointsProtocol=https;AccountName=" + os.environ.get("AZURE_STORAGE_ACCOUNT_NAME") + ";AccountKey=" + os.environ.get("AZURE_STORAGE_ACCOUNT_KEY") + ";EndpointSuffix=core.windows.net" # type: ignore
+azure_queue_handler = azure_queue_handler.AzureQueueHandler(connection_string, "documents-processing")
 
-for raw_pds_filename in raw_pds_filenames:
-    raw_pds_filename = raw_pds_filename.split(".")[0]
+for message in azure_queue_handler.receive_messages(visibility_timeout=1800):
+    raw_pds_filename = message.content.split('/')[-1].split(".")[0]
     
     start_time = time.time()
     
@@ -34,16 +38,28 @@ for raw_pds_filename in raw_pds_filenames:
     text_chunking.chunk_and_save(raw_pds_filename)
     chunk_vectorization.vectorize_and_store(raw_pds_filename, 'ada', 3072)
     
+    azure_queue_handler.delete_message(message)
+    
     print("Processing time: " + str(time.time() - start_time))
     print("=========================================")
 
-vectorized_filenames = azure_helper.list_blobs("vectorized-dicts")
+try:
+    settings = json.loads((azure_storage_handler.download_blob("settings.json", "settings")).decode("utf-8")) # type: ignore
+
+    if (settings['current_collection'] == "vector_collection_politics"):
+        collection_name = "vector_collection_politics_tmp"
+    else:
+        collection_name = "vector_collection_politics"
+except Exception as e:
+    collection_name = "vector_collection_politics"
+
+vectorized_filenames = azure_storage_handler.list_blobs("vectorized-dicts")
 all_vectors = []
 all_sources = []
 global_indexing = dict()
 
-for vectorized_filename in vectorized_filenames:
-    vectors = azure_helper.get_vectorized_dict(vectorized_filename.split(".")[0])
+for vectorized_filename in tqdm(vectorized_filenames, desc="Pushing vectors to Milvus"):
+    vectors = azure_storage_handler.get_vectorized_dict(vectorized_filename.split(".")[0])
     
     index_data = dict()
     index_data["len"] = len(vectors)
@@ -55,17 +71,21 @@ for vectorized_filename in vectorized_filenames:
         
     index_data["end"] = len(all_vectors)-1
     
-    global_indexing[vectorized_filename] = index_data
+    global_indexing[vectorized_filename.split('.')[0]] = index_data
 
-print(global_indexing)
+azure_storage_handler.upload_blob("global_indexing.json", "settings", global_indexing)
 
 init_milvus_connection()
 
-if "vector_collection_politics" in utility.list_collections():
-    utility.drop_collection("vector_collection_politics")
+if collection_name in utility.list_collections():
+    utility.drop_collection(collection_name)
 index_field = FieldSchema(name="index", dtype=DataType.INT64, is_primary=True)
 vector_field = FieldSchema(name="vector", dtype=DataType.FLOAT_VECTOR, dim=3072)
 source_field = FieldSchema(name="source", dtype=DataType.VARCHAR, max_length=256)
 schema = create_collection_schema([index_field, vector_field, source_field])
 
-store_vectors("vector_collection_politics", schema, all_vectors, vector_field.name, all_sources)
+store_vectors(collection_name, schema, all_vectors, vector_field.name, all_sources)
+
+settings = dict()
+settings["current_collection"] = collection_name
+azure_storage_handler.upload_blob("settings.json", "settings", settings)

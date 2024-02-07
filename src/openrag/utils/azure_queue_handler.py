@@ -16,8 +16,8 @@ class AzureQueueHandler:
         peeked_messages = self.queue_client.peek_messages(max_messages=max_messages)
         return peeked_messages
 
-    def receive_messages(self, max_messages=5):
-        messages = self.queue_client.receive_messages(messages_per_page=max_messages)
+    def receive_messages(self, max_messages=5, visibility_timeout=0):
+        messages = self.queue_client.receive_messages(messages_per_page=max_messages, visibility_timeout=visibility_timeout)
         return messages
 
     def delete_message(self, message):
