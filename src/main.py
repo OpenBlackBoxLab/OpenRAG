@@ -39,19 +39,22 @@ for message in azure_queue_handler.receive_messages(visibility_timeout=18000):
         else:
             print("Error: Failed to retrieve the document from the API")
         
-        raw_pds_filename = document['data']['file']
+        raw_pds_filenames = document['data']['files']
         
-        start_time = time.time()
-        
-        print("Processing: " + raw_pds_filename)
-        
-        text_extraction.extract_and_preprocess_pdf(raw_pds_filename)
-        text_chunking.chunk_and_save(raw_pds_filename)
-        chunk_vectorization.vectorize_and_store(raw_pds_filename, 'ada', 3072)
-        
+        for raw_pds_filename in raw_pds_filenames:
+            raw_pds_filename = raw_pds_filename.split(".")[0]
+            
+            start_time = time.time()
+            
+            print("Processing: " + raw_pds_filename)
+            
+            text_extraction.extract_and_preprocess_pdf(raw_pds_filename)
+            text_chunking.chunk_and_save(raw_pds_filename)
+            chunk_vectorization.vectorize_and_store(raw_pds_filename, 'ada', 3072)
+            
         azure_queue_handler.delete_message(message)
         processed_documents = processed_documents + [message.content]
-        
+            
         print("Processing time: " + str(time.time() - start_time))
         print("=========================================")
     except Exception as e:
