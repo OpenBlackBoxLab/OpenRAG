@@ -107,7 +107,7 @@ def chunk_sentences(sentences, min_chunk_size, max_chunk_size, overlap_size):
             token_count += num_tokens_new_part
 
     chunks_dict = {f"chunk_{i}": {"text": " ".join(chunk[0]), "page": chunk[1], "sentence_num": chunk[2], "sentences_page": chunk[3]} 
-               for i, chunk in enumerate(chunks, start=1)}
+               for i, chunk in enumerate(chunks, start=0)}
     return chunks_dict
 
 def overlapping_chunking(pages, min_chunk_size, max_chunk_size, overlap_size):
