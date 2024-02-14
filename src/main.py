@@ -96,8 +96,6 @@ for vectorized_filename in tqdm(vectorized_filenames, desc="Pushing vectors to M
     
     global_indexing[vectorized_filename.split('.')[0]] = index_data
 
-azure_storage_handler.upload_blob("global_indexing.json", "settings", global_indexing)
-
 init_milvus_connection()
 
 if collection_name in utility.list_collections():
@@ -112,6 +110,7 @@ store_vectors(collection_name, schema, all_vectors, vector_field.name, all_sourc
 settings = dict()
 settings["current_collection"] = collection_name
 azure_storage_handler.upload_blob("settings.json", "settings", settings)
+azure_storage_handler.upload_blob("global_indexing.json", "settings", global_indexing)
 
 for document in processed_documents:
     requests.patch(os.environ.get("ENTITIES_API_URL") + "/parties/" + document, json={"state": "available"})
