@@ -1,9 +1,11 @@
 PyMuPDF==1.23.8
 azure-storage-blob==12.19.0
 python-dotenv==1.0.0
-spacy==3.7.2
 tiktoken==0.5.2
 openai==1.6.1
 gensim==4.3.2
 transformers==4.36.2
-pymilvus==2.3.4
+grpcio==1.59.3 
+grpcio-tools==1.59.3
+pymilvus==2.3.6
+azure-storage-queue==12.9.0

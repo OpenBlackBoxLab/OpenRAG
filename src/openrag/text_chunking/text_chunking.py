@@ -7,17 +7,16 @@ Project URL: https://github.com/OpenBlackBoxLab/OpenRAG
 
 The purpose of this file is to provide functionality for text chunking, which involves dividing a text into smaller chunks or segments. 
 The code includes functions for calculating the number of tokens in a string based on a specified encoding, 
-as well as determining the overlap of text chunks. It also imports modules such as spacy and azure_helper from the project's utils package.
+as well as determining the overlap of text chunks.
 
 Copyright (c) 2024 Open BlackBox
 
 This file is part of OpenRAG and is released under the MIT License.
 See the LICENSE file in the root directory of this project for details.
 """
-import time
-import spacy
+import re
 from tqdm import tqdm
-from ..utils import azure_helper as azure_handler
+from ..utils import azure_storage_handler as azure_handler
 from tiktoken import get_encoding
 
 # Configuration Constants
@@ -61,30 +60,6 @@ def get_overlap(chunks, overlap_size):
     num_tokens_overlap = num_tokens_in_string(overlap)
 
     return [overlap], num_tokens_overlap
-
-def load_spacy_models():
-    """
-    Load and return French and Dutch spaCy models.
-
-    Returns:
-        tuple: Loaded French and Dutch spaCy models.
-    """
-    nlp_fr = spacy.load("fr_dep_news_trf")  # French model
-    nlp_nl = spacy.load("nl_core_news_lg")  # Dutch model
-    return nlp_fr, nlp_nl
-
-def split_into_sentences(text, nlp):
-    """
-    Split text into sentences using a spaCy model.
-
-    Args:
-        text (str): The text to split.
-        nlp: The spaCy language model.
-
-    Returns:
-        list: A list of sentence strings.
-    """
-    return [sent.text.strip() for sent in nlp(text).sents]
 
 def chunk_sentences(sentences, min_chunk_size, max_chunk_size, overlap_size):
     """
@@ -132,7 +107,7 @@ def chunk_sentences(sentences, min_chunk_size, max_chunk_size, overlap_size):
             token_count += num_tokens_new_part
 
     chunks_dict = {f"chunk_{i}": {"text": " ".join(chunk[0]), "page": chunk[1], "sentence_num": chunk[2], "sentences_page": chunk[3]} 
-               for i, chunk in enumerate(chunks, start=1)}
+               for i, chunk in enumerate(chunks, start=0)}
     return chunks_dict
 
 def overlapping_chunking(pages, min_chunk_size, max_chunk_size, overlap_size):
@@ -148,19 +123,17 @@ def overlapping_chunking(pages, min_chunk_size, max_chunk_size, overlap_size):
     Returns:
         dict: A dictionary of chunked sentences with associated metadata.
     """
-    nlp_fr, nlp_nl = load_spacy_models()  # Load spaCy models
 
     all_sentences = []
     texts = [page_text for page_text, _ in pages]
     pages_info = [(page_num, len(text)) for text, page_num in pages]
 
-    for doc, (page_num, text_length) in tqdm(zip(nlp_fr.pipe(texts, batch_size=50, disable=['tagger', 'ner', 'lemmatizer']), pages_info), total=len(pages), desc="Chunking"):
-        sentences = list(doc.sents)
+    for doc, (page_num, text_length) in tqdm(zip(texts, pages_info), total=len(pages), desc="Chunking"):
+        sentences = re.split('(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)(?<!\w[!?])\s', doc)
         sentences_page = len(sentences)
-
         for sentence_num, sent in enumerate(sentences, start=1):
             sentence_info = {
-                "text": sent.text.strip(),
+                "text": sent.strip(),
                 "page": page_num,
                 "sentence_num": sentence_num,
                 "sentences_page": sentences_page
