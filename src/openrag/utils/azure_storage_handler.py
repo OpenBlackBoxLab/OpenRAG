@@ -1,5 +1,5 @@
 """
-File: azure_helper.py
+File: azure_storage_handler.py
 Author: Nathan Collard <ncollard@openblackbox.be>
 Contact: opensource@openblackbox.be
 License: MIT License
@@ -29,7 +29,8 @@ CONTAINER_NAMES = {
     'raw_pdfs': "raw-pdfs",
     'extracted_dicts': "extracted-dicts",
     'chunked_dicts': "chunked-dicts",
-    'vectorized_dicts': "vectorized-dicts"
+    'vectorized_dicts': "vectorized-dicts",
+    'settings': "settings"
 }
     
 def get_blob_service_client():
@@ -39,7 +40,7 @@ def get_blob_service_client():
     Returns:
         BlobServiceClient: The BlobServiceClient instance.
     """
-    connection_string = "DefaultEndpointsProtocol=https;AccountName=" + os.environ.get("AZURE_STORAGE_ACCOUNT_NAME") + ";AccountKey=" + os.environ.get("AZURE_STORAGE_ACCOUNT_KEY") + ";EndpointSuffix=core.windows.net"
+    connection_string = "DefaultEndpointsProtocol=https;AccountName=" + os.environ.get("AZURE_STORAGE_ACCOUNT_NAME") + ";AccountKey=" + os.environ.get("AZURE_STORAGE_ACCOUNT_KEY") + ";EndpointSuffix=core.windows.net" # type: ignore
     return BlobServiceClient.from_connection_string(connection_string)
 
 def download_blob(file_name, container_name, stream=False):
@@ -114,7 +115,7 @@ def get_extracted_dict(file_name):
         dict: The content of the JSON file.
     """
     blob_stream = download_blob(f"{file_name}.json", CONTAINER_NAMES['extracted_dicts'])
-    return json.loads(blob_stream.decode("utf-8"))
+    return json.loads(blob_stream.decode("utf-8")) # type: ignore
 
 def put_extracted_dict(file_name, data):
     """
@@ -140,7 +141,7 @@ def get_chunked_dict(file_name):
         dict: The content of the JSON file.
     """
     blob_stream = download_blob(f"{file_name}.json", CONTAINER_NAMES['chunked_dicts'])
-    return json.loads(blob_stream.decode("utf-8"))
+    return json.loads(blob_stream.decode("utf-8")) # type: ignore
 
 def put_chunked_dict(file_name, chunks_dict):
     """
@@ -166,7 +167,7 @@ def get_vectorized_dict(file_name):
         dict: The content of the JSON file.
     """
     blob_stream = download_blob(f"{file_name}.json", CONTAINER_NAMES['vectorized_dicts'])
-    return json.loads(blob_stream.decode("utf-8"))
+    return json.loads(blob_stream.decode("utf-8")) # type: ignore
 
 def put_vectorized_dict(file_name, vectorized_dict):
     """

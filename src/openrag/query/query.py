@@ -16,7 +16,7 @@ This file is part of OpenRAG and is released under the MIT License.
 See the LICENSE file in the root directory of this project for details.
 """
 from ..chunk_vectorization import chunk_vectorization as vectorize
-from ..utils import azure_helper as azure_helper
+from ..utils import azure_storage_handler as azure_storage_handler
 import json
 
 def vectorize_question(question_text):
@@ -78,7 +78,7 @@ def find_text_chunks(chunk_id, file_path):
     for key, value in data_dict.items():
         if value["start"] <= chunk_id <= value["end"]:
             index_in_file = chunk_id - value["start"]
-            data_dict_file = azure_helper.getChunkedDict(key)
+            data_dict_file = azure_storage_handler.getChunkedDict(key)
             return data_dict_file.get(f"chunk_{index_in_file}")
 
     return None
