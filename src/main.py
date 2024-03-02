@@ -26,13 +26,23 @@ from tqdm import tqdm
 import requests
 
 connection_string = "DefaultEndpointsProtocol=https;AccountName=" + os.environ.get("AZURE_STORAGE_ACCOUNT_NAME") + ";AccountKey=" + os.environ.get("AZURE_STORAGE_ACCOUNT_KEY") + ";EndpointSuffix=core.windows.net" # type: ignore
-azure_queue_handler = azure_queue_handler.AzureQueueHandler(connection_string, "documents-processing")
+
+entity_type = "parties"
+
+if len(azure_queue_handler.AzureQueueHandler(connection_string, "parties-processing").peek_messages()) < len(azure_queue_handler.AzureQueueHandler(connection_string, "candidates-processing").peek_messages()):
+    entity_type = "candidates"
+
+azure_queue_handler = azure_queue_handler.AzureQueueHandler(connection_string, entity_type + "-processing")
 
 processed_documents = []
 
 for message in azure_queue_handler.receive_messages(visibility_timeout=18000):
+    if message.content in processed_documents:
+        azure_queue_handler.delete_message(message)
+        continue
+    
     try:
-        response = requests.get(os.environ.get("ENTITIES_API_URL") + "/parties/" + message.content)
+        response = requests.get(os.environ.get("ENTITIES_API_URL") + "/" + entity_type + "/" + message.content)
 
         if response.status_code == 200:
             document = response.json()
@@ -40,11 +50,11 @@ for message in azure_queue_handler.receive_messages(visibility_timeout=18000):
             print("Error: Failed to retrieve the document from the API")
         
         raw_pds_filenames = document['data']['files']
+            
+        start_time = time.time()
         
         for raw_pds_filename in raw_pds_filenames:
             raw_pds_filename = raw_pds_filename.split(".")[0]
-            
-            start_time = time.time()
             
             print("Processing: " + raw_pds_filename)
             
@@ -52,15 +62,15 @@ for message in azure_queue_handler.receive_messages(visibility_timeout=18000):
             text_chunking.chunk_and_save(raw_pds_filename)
             chunk_vectorization.vectorize_and_store(raw_pds_filename, 'ada', 3072)
             
-        azure_queue_handler.delete_message(message)
         processed_documents = processed_documents + [message.content]
             
         print("Processing time: " + str(time.time() - start_time))
         print("=========================================")
     except Exception as e:
         print("Error: " + str(e))
-        azure_queue_handler.delete_message(message)
         print("=========================================")
+    
+    azure_queue_handler.delete_message(message)
 
 if len(processed_documents) == 0:
     print("No documents to process")
@@ -113,4 +123,4 @@ azure_storage_handler.upload_blob("settings.json", "settings", settings)
 azure_storage_handler.upload_blob("global_indexing.json", "settings", global_indexing)
 
 for document in processed_documents:
-    requests.patch(os.environ.get("ENTITIES_API_URL") + "/parties/" + document, json={"state": "available"})
+    requests.patch(os.environ.get("ENTITIES_API_URL") + "/" + entity_type + "/" + document, json={"state": "available"})
