@@ -42,7 +42,8 @@ for message in azure_queue_handler.receive_messages(visibility_timeout=18000):
         continue
     
     try:
-        response = requests.get(os.environ.get("ENTITIES_API_URL") + "/" + entity_type + "/" + message.content)
+        headers = {"Authorization": "Api-Key " + os.environ.get("ENTITIES_API_KEY")}
+        response = requests.get(os.environ.get("ENTITIES_API_URL") + "/" + entity_type + "/" + message.content, headers=headers)
 
         if response.status_code == 200:
             document = response.json()
@@ -123,4 +124,5 @@ azure_storage_handler.upload_blob("settings.json", "settings", settings)
 azure_storage_handler.upload_blob("global_indexing.json", "settings", global_indexing)
 
 for document in processed_documents:
-    requests.patch(os.environ.get("ENTITIES_API_URL") + "/" + entity_type + "/" + document, json={"state": "available"})
+    headers = {"Authorization": "Api-Key " + os.environ.get("ENTITIES_API_KEY")}
+    requests.patch(os.environ.get("ENTITIES_API_URL") + "/" + entity_type + "/" + document, json={"state": "available"}, headers=headers)
