@@ -16,6 +16,7 @@ See the LICENSE file in the root directory of this project for details.
 """
 
 from tqdm import tqdm
+import time
 from ..utils import azure_storage_handler as azure_handler
 
 # Base class for vectorizers
@@ -69,6 +70,14 @@ class ADAVectorizer(Vectorizer):
             encoding_format="float"
         )
         return response.data[0].embedding
+    
+    def vectorize_array(self, text_array):
+        response = self.openai.embeddings.create(
+            input=text_array,
+            model="text-embedding-3-large",
+            encoding_format="float"
+        )
+        return response.data
 
 def get_vectorizer(vectorizer_type):
     vectorizers = {
@@ -89,11 +98,26 @@ def vectorize_and_store(file_name, vectorizer_type, expected_dim):
     chunks = azure_handler.get_chunked_dict(file_name)
     vectorizer = get_vectorizer(vectorizer_type)
     vector_data = []
-
-    for chunk in tqdm(chunks.values(), desc="Vectorizing"):
-        text = chunk['text']
-        vector = vectorizer.vectorize(text)
-        padded_vector = pad_vector(vector, expected_dim)
-        vector_data.append(padded_vector)
+    
+    try:
+        print("Vectorizing: ", end="")
+        start_time = time.time()
+        
+        chunks = [chunk['text'] for chunk in chunks.values()]
+        for i in range(0, len(chunks), 1000):
+            chunk_subset = chunks[i:i+1000]
+            vectors = vectorizer.vectorize_array(chunk_subset)
+            for vector in tqdm(vectors, desc="Appling padding to vectors"):
+                vector = vector.embedding
+                padded_vector = pad_vector(vector, expected_dim)
+                vector_data.append(padded_vector)
+        
+        print(str(time.time() - start_time) + "s")
+    except Exception as e:
+        for chunk in tqdm(chunks.values(), desc="Vectorizing"):
+            text = chunk['text']
+            vector = vectorizer.vectorize(text)
+            padded_vector = pad_vector(vector, expected_dim)
+            vector_data.append(padded_vector)
     
     azure_handler.put_vectorized_dict(file_name, vector_data)

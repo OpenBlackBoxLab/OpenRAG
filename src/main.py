@@ -36,7 +36,7 @@ azure_queue_handler = azure_queue_handler.AzureQueueHandler(connection_string, e
 
 processed_documents = []
 
-for message in azure_queue_handler.receive_messages(visibility_timeout=18000):
+for message in azure_queue_handler.receive_messages(max_messages=5, visibility_timeout=18000):
     if message.content in processed_documents:
         azure_queue_handler.delete_message(message)
         continue
@@ -53,18 +53,18 @@ for message in azure_queue_handler.receive_messages(visibility_timeout=18000):
         raw_pds_filenames = document['data']['files']
             
         start_time = time.time()
-        
+
         for raw_pds_filename in raw_pds_filenames:
-            raw_pds_filename = raw_pds_filename.split(".")[0]
+            raw_pds_filename = ".".join(raw_pds_filename.split(".")[:-1])
             
             print("Processing: " + raw_pds_filename)
             
             text_extraction.extract_and_preprocess_pdf(raw_pds_filename)
             text_chunking.chunk_and_save(raw_pds_filename)
             chunk_vectorization.vectorize_and_store(raw_pds_filename, 'ada', 3072)
-            
+
         processed_documents = processed_documents + [message.content]
-            
+
         print("Processing time: " + str(time.time() - start_time))
         print("=========================================")
     except Exception as e:
@@ -93,7 +93,7 @@ all_sources = []
 global_indexing = dict()
 
 for vectorized_filename in tqdm(vectorized_filenames, desc="Pushing vectors to Milvus"):
-    vectors = azure_storage_handler.get_vectorized_dict(vectorized_filename.split(".")[0])
+    vectors = azure_storage_handler.get_vectorized_dict(".".join(vectorized_filename.split(".")[:-1]))
     
     index_data = dict()
     index_data["len"] = len(vectors)
@@ -101,11 +101,11 @@ for vectorized_filename in tqdm(vectorized_filenames, desc="Pushing vectors to M
     
     for vector in vectors:
         all_vectors.append(vector)
-        all_sources.append(vectorized_filename.split(".")[0])
+        all_sources.append(".".join(vectorized_filename.split(".")[:-1]))
         
     index_data["end"] = len(all_vectors)-1
     
-    global_indexing[vectorized_filename.split('.')[0]] = index_data
+    global_indexing[".".join(vectorized_filename.split('.')[:-1])] = index_data
 
 init_milvus_connection()
 
