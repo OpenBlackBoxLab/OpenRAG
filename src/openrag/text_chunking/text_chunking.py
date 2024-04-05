@@ -129,7 +129,7 @@ def overlapping_chunking(pages, min_chunk_size, max_chunk_size, overlap_size):
     pages_info = [(page_num, len(text)) for text, page_num in pages]
 
     for doc, (page_num, text_length) in tqdm(zip(texts, pages_info), total=len(pages), desc="Chunking"):
-        sentences = re.split('(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)(?<!\w[!?])\s', doc)
+        sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)(?<!\w[!?])\s', doc)
         sentences_page = len(sentences)
         for sentence_num, sent in enumerate(sentences, start=1):
             sentence_info = {
