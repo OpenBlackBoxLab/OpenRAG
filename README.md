@@ -1,7 +1,7 @@
 # OpenRAG Model
 
 ## Introduction
-Open BlackBox is committed to making advanced AI technologies more accessible, with an emphasis on transparency and ethical application. Our open-source RAG (Retrieve-And-Generate) model is specifically tailored to meet the needs of a wide range of users, including researchers, developers, and organizations who require effective Retrieve-And-Generate capabilities on PDF documents. This versatile and customizable AI solution simplifies complex processes, making it a valuable tool for anyone seeking to extract, analyze, and utilize information from PDFs.
+Open BlackBox is committed to making advanced AI technologies more accessible, with an emphasis on transparency and ethical application. Our open-source RAG (Retrieve-And-Generate) model is specifically tailored to meet the needs of a wide range of users, including researchers, developers, and organizations who require effective Retrieval Augmented Generation capabilities on PDF documents. This versatile and customizable AI solution simplifies complex processes, making it a valuable tool for anyone seeking to extract, analyze, and utilize information from PDFs.
 
 The RAG model is structured to handle various stages efficiently: from text extraction from PDF documents to chunking, vectorization, and storage in VectorDB. It also includes sophisticated querying capabilities and a refinement process using a context-based Large Language Model (LLM). Our model is designed not just for corporate companies but for any user who needs to unlock the wealth of information contained in PDF documents through advanced AI techniques.
 
